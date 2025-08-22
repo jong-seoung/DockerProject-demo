@@ -1,0 +1,162 @@
+spring:
+  application:
+    name: blog-api
+
+  # 데이터베이스 연결 설정
+  datasource:
+    url: jdbc:mysql://${DB_HOST:blog-mysql}:${DB_PORT:3306}/${DB_NAME:blog_db}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci
+    username: ${DB_USER:blog_user}
+    password: ${DB_PASSWORD:blogpassword}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      max-lifetime: 1200000
+      connection-timeout: 20000
+
+  # JPA/Hibernate 설정
+  jpa:
+    hibernate:
+      ddl-auto: update # 개발환경에서는 update, 운영에서는 validate 사용
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+        implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyLegacyJpaImpl
+    show-sql: ${SHOW_SQL:false}
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        format_sql: true
+        use_sql_comments: true
+        jdbc:
+          time_zone: Asia/Seoul
+        connection:
+          characterEncoding: utf8mb4
+          CharSet: utf8mb4
+          useUnicode: true
+    open-in-view: false
+    defer-datasource-initialization: true
+
+  # 웹 설정 (CORS 및 인코딩)
+  web:
+    resources:
+      add-mappings: true
+
+  # HTTP 인코딩 설정
+  http:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+  # SQL 초기화 설정
+  sql:
+    init:
+      mode: never # init.sql은 Docker에서 처리
+
+# 서버 설정
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    context-path: /
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+  tomcat:
+    uri-encoding: UTF-8
+    additional-tld-skip-patterns: "*.jar"
+
+# 로그 설정
+logging:
+  level:
+    com.example.blog: ${LOG_LEVEL:INFO}
+    org.springframework.web: ${LOG_LEVEL:INFO}
+    org.springframework.security: ${LOG_LEVEL:INFO}
+    org.hibernate.SQL: ${SQL_LOG_LEVEL:WARN}
+    org.hibernate.type.descriptor.sql.BasicBinder: ${SQL_LOG_LEVEL:WARN}
+    org.springframework.jdbc.core: ${SQL_LOG_LEVEL:WARN}
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# 액추에이터 헬스체크 설정
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,env,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+  health:
+    db:
+      enabled: true
+    diskspace:
+      enabled: true
+  info:
+    env:
+      enabled: true
+
+# 애플리케이션 정보
+info:
+  app:
+    name: ${spring.application.name}
+    description: Docker Blog API
+    version: 1.0.0
+    encoding: UTF-8
+  java:
+    version: ${java.version}
+
+---
+# 개발 환경 설정
+spring:
+  config:
+    activate:
+      on-profile: dev
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+logging:
+  level:
+    com.example.blog: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+---
+# 운영 환경 설정
+spring:
+  config:
+    activate:
+      on-profile: prod
+  jpa:
+    show-sql: false
+logging:
+  level:
+    root: WARN
+    com.example.blog: INFO
+  file:
+    name: /logs/blog-api.log
+
+---
+# 테스트 환경 설정
+spring:
+  config:
+    activate:
+      on-profile: test
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+  h2:
+    console:
+      enabled: true
