@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: spring-registry-demo
+
+server:
+  port: 8080
+
+logging:
+  level:
+    com.example.demo: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+info:
+  app:
+    name: ${spring.application.name}
+    version: 1.0.0
+    description: Docker Registry ??? ??????
