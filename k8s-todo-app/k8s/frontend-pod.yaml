@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: frontend-pod
+  labels:
+    app: frontend
+    tier: web
+spec:
+  containers:
+    - name: todo-web
+      image: todo-frontend:latest
+      imagePullPolicy: Never
+      ports:
+        - containerPort: 80
+  restartPolicy: Always
