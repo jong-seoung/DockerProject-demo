@@ -1,0 +1,170 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webapp-deployment
+  labels:
+    app: webapp
+spec:
+  replicas: 3 # 3개의 Pod 생성
+  selector:
+    matchLabels:
+      app: webapp
+  template:
+    metadata:
+      labels:
+        app: webapp
+    spec:
+      containers:
+        - name: webapp
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          command: ["/bin/sh"]
+          args:
+            - -c
+            - |
+              # 각 Pod마다 고유한 색상과 정보를 가진 HTML 생성
+              POD_ID=$(echo $POD_NAME | cut -d'-' -f3)
+
+              # Pod별로 다른 색상 설정
+              case $POD_ID in
+                *1|*4|*7) COLOR="#e74c3c"; POD_COLOR="빨강";;
+                *2|*5|*8) COLOR="#3498db"; POD_COLOR="파랑";;
+                *3|*6|*9) COLOR="#2ecc71"; POD_COLOR="초록";;
+                *0) COLOR="#f39c12"; POD_COLOR="주황";;
+                *) COLOR="#9b59b6"; POD_COLOR="보라";;
+              esac
+
+              echo "==== Pod Info ===="
+              echo "Pod Name: $POD_NAME"
+              echo "Pod ID: $POD_ID"
+              echo "Pod IP: $POD_IP"
+              echo "Pod Color: $POD_COLOR"
+              echo "================="
+
+
+              cat > /usr/share/nginx/html/index.html << EOF
+              <!DOCTYPE html>
+              <html lang="ko">
+              <head>
+                  <meta charset="UTF-8">
+                  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                  <title>🚀 Kubernetes 로드밸런싱 테스트</title>
+                  <style>
+                      body {
+                          font-family: Arial, sans-serif;
+                          max-width: 800px;
+                          margin: 30px auto;
+                          padding: 20px;
+                          background: linear-gradient(135deg, $COLOR, #2c3e50);
+                          color: white;
+                          border-radius: 15px;
+                          text-align: center;
+                      }
+                      .container {
+                          background: rgba(255,255,255,0.1);
+                          padding: 40px;
+                          border-radius: 20px;
+                          backdrop-filter: blur(10px);
+                      }
+                      .pod-info {
+                          background: rgba(255,255,255,0.2);
+                          padding: 20px;
+                          margin: 20px 0;
+                          border-radius: 10px;
+                          font-size: 18px;
+                      }
+                      .highlight {
+                          background: $COLOR;
+                          padding: 5px 15px;
+                          border-radius: 25px;
+                          display: inline-block;
+                          margin: 5px;
+                          font-weight: bold;
+                      }
+                      .instruction {
+                          background: rgba(255,255,255,0.15);
+                          padding: 15px;
+                          border-radius: 8px;
+                          margin: 15px 0;
+                          font-size: 16px;
+                      }
+                      .refresh-btn {
+                          background: #27ae60;
+                          color: white;
+                          border: none;
+                          padding: 15px 30px;
+                          font-size: 18px;
+                          border-radius: 8px;
+                          cursor: pointer;
+                          margin: 10px;
+                      }
+                      .refresh-btn:hover {
+                          background: #2ecc71;
+                      }
+                  </style>
+              </head>
+              <body>
+                  <div class="container">
+                      <h1>🚀 Kubernetes 로드밸런싱 테스트</h1>
+
+                      <div class="pod-info">
+                          <h2>현재 응답하는 Pod 정보</h2>
+                          <p><strong>Pod 이름:</strong> <span class="highlight">$POD_NAME</span></p>
+                          <p><strong>Pod IP:</strong> <span class="highlight">$POD_IP</span></p>
+                          <p><strong>Pod 색상:</strong> <span class="highlight">$POD_COLOR</span></p>
+                      </div>
+
+                      <div class="instruction">
+                          <h3>📝 로드밸런싱 테스트 방법</h3>
+                          <p>1. 아래 버튼을 클릭하거나 브라우저를 새로고침하세요</p>
+                          <p>2. 매번 다른 Pod에서 응답하는 것을 확인하세요</p>
+                          <p>3. Pod 이름, IP, 색상이 바뀌는 것을 관찰하세요</p>
+                      </div>
+
+                      <button class="refresh-btn" onclick="location.reload()">
+                          🔄 새로고침 (로드밸런싱 테스트)
+                      </button>
+
+                      <div class="instruction">
+                          <p><strong>현재 시간:</strong> $(date)</p>
+                          <p><strong>총 Pod 개수:</strong> 3개</p>
+                          <p><strong>서비스 타입:</strong> ClusterIP (로드밸런싱)</p>
+                      </div>
+                  </div>
+              </body>
+              </html>
+              EOF
+
+              # nginx 시작
+              nginx -g 'daemon off;'
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "25m"
+            limits:
+              memory: "64Mi"
+              cpu: "50m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: webapp-service
+spec:
+  selector:
+    app: webapp
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: NodePort
+  # type: ClusterIP
