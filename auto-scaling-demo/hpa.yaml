@@ -1,0 +1,19 @@
+# hpa.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: load-test-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: load-test-app
+  minReplicas: 2 # 최소 2개 Pod
+  maxReplicas: 8 # 최대 8개 Pod
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 20 # CPU 30% 목표 (낮게 설정하여 테스트 용이)
