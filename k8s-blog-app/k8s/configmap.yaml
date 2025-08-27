@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: blog-config
+data:
+  ENVIRONMENT: "production" # development → production 변경
+  LOG_LEVEL: "info" # debug → info 변경
+  TIMEZONE: "Asia/Seoul"
+  DB_HOST: "mysql-service"
+  DB_PORT: "3306"
+  DB_NAME: "blogdb"
+  API_PORT: "3001"
+  CORS_ORIGIN: "*"
+  FEATURE_COMMENTS: "true"
+  FEATURE_USER_REGISTRATION: "true" # false → true 변경
+  app.properties: |
+    app.name=My Production Blog
+    app.version=2.0.0
+    app.description=Production blog application
+    logging.level=info
+    logging.format=json
+    cache.ttl=600
+    cache.max_size=2000

@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎯 ConfigMap & Secret 실습 블로그</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+        .section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+        .config-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        .config-value {
+            font-family: monospace;
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .btn {
+            background: linear-gradient(135deg, #4299e1, #3182ce);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .post {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid #38a169;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+        .status.success { background: #c6f6d5; color: #22543d; }
+        .status.error { background: #fed7d7; color: #742a2a; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 ConfigMap & Secret 실습 블로그</h1>
+            <p>쿠버네티스 설정 관리 실습 예제</p>
+        </div>
+
+        <div class="grid">
+            <div class="section">
+                <h2>⚙️ 설정 정보</h2>
+                <button class="btn" onclick="loadConfig()">새로고침</button>
+                <div id="configInfo">설정 정보 로딩중...</div>
+            </div>
+
+            <div class="section">
+                <h2>🏥 시스템 상태</h2>
+                <button class="btn" onclick="checkHealth()">상태 확인</button>
+                <div id="healthInfo">상태 확인중...</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>✍️ 새 게시글</h2>
+            <form id="postForm">
+                <div class="form-group">
+                    <input type="text" id="title" placeholder="제목" required>
+                </div>
+                <div class="form-group">
+                    <textarea id="content" rows="3" placeholder="내용" required></textarea>
+                </div>
+                <div class="form-group">
+                    <input type="text" id="author" placeholder="작성자" required>
+                </div>
+                <button type="submit" class="btn">작성</button>
+            </form>
+            <div id="postStatus"></div>
+        </div>
+
+        <div class="section">
+            <h2>📋 게시글 목록</h2>
+            <button class="btn" onclick="loadPosts()">새로고침</button>
+            <div id="postsContainer">게시글 로딩중...</div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+
+        async function loadConfig() {
+            try {
+                const response = await fetch(`${API_BASE}/config`);
+                const config = await response.json();
+                
+                document.getElementById('configInfo').innerHTML = `
+                    <div class="config-item">
+                        <span>환경:</span>
+                        <span class="config-value">${config.environment}</span>
+                    </div>
+                    <div class="config-item">
+                        <span>로그 레벨:</span>
+                        <span class="config-value">${config.logLevel}</span>
+                    </div>
+                    <div class="config-item">
+                        <span>DB 호스트:</span>
+                        <span class="config-value">${config.databaseInfo.host}</span>
+                    </div>
+                    <div class="config-item">
+                        <span>댓글 기능:</span>
+                        <span class="config-value">${config.features.comments ? '✅' : '❌'}</span>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('configInfo').innerHTML = 
+                    '<div class="status error">설정 로드 실패</div>';
+            }
+        }
+
+        async function checkHealth() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const health = await response.json();
+                
+                document.getElementById('healthInfo').innerHTML = `
+                    <div class="config-item">
+                        <span>상태:</span>
+                        <span class="config-value">✅ ${health.status}</span>
+                    </div>
+                    <div class="config-item">
+                        <span>시간:</span>
+                        <span class="config-value">${new Date(health.timestamp).toLocaleTimeString('ko-KR')}</span>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('healthInfo').innerHTML = 
+                    '<div class="status error">상태 확인 실패</div>';
+            }
+        }
+
+        async function loadPosts() {
+            try {
+                const response = await fetch(`${API_BASE}/posts`);
+                const posts = await response.json();
+                
+                if (posts.length === 0) {
+                    document.getElementById('postsContainer').innerHTML = 
+                        '<div class="status">게시글이 없습니다.</div>';
+                    return;
+                }
+
+                let html = '';
+                posts.forEach(post => {
+                    html += `
+                        <div class="post">
+                            <h3>${post.title}</h3>
+                            <p style="color: #666; font-size: 0.9em;">
+                                ${post.author} | ${new Date(post.created_at).toLocaleDateString('ko-KR')}
+                            </p>
+                            <p>${post.content}</p>
+                        </div>
+                    `;
+                });
+                
+                document.getElementById('postsContainer').innerHTML = html;
+            } catch (error) {
+                document.getElementById('postsContainer').innerHTML = 
+                    '<div class="status error">게시글 로드 실패</div>';
+            }
+        }
+
+        document.getElementById('postForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const title = document.getElementById('title').value;
+            const content = document.getElementById('content').value;
+            const author = document.getElementById('author').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/posts`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, content, author })
+                });
+
+                if (response.ok) {
+                    document.getElementById('postStatus').innerHTML = 
+                        '<div class="status success">게시글 작성 완료!</div>';
+                    document.getElementById('postForm').reset();
+                    loadPosts();
+                } else {
+                    document.getElementById('postStatus').innerHTML = 
+                        '<div class="status error">작성 실패</div>';
+                }
+            } catch (error) {
+                document.getElementById('postStatus').innerHTML = 
+                    '<div class="status error">네트워크 오류</div>';
+            }
+        });
+
+        // 페이지 로드시 초기화
+        window.addEventListener('DOMContentLoaded', () => {
+            loadConfig();
+            checkHealth();
+            loadPosts();
+        });
+    </script>
+</body>
+</html>
